@@ -443,10 +443,8 @@ uint8_t* decToBinConvert(uint8_t decimalValue){
 		    remainder = temp % 2;
 		    temp /= 2; // floors result of division because temp is integer
 
-		    binary[counter] += remainder * scale; // store the remainder in the binary number
+		    binary[counter] = remainder; // store the remainder in the binary number
 		    counter++;
-
-		    scale *= 10; // increase the scale ten times
 		  }
 
 		  return binary;
