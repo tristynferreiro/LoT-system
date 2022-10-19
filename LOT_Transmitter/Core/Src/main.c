@@ -41,7 +41,14 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
+int mode = 0;
+uint32_t reading;
+char buffer[20];
+int samplesSent = 0;
+
 
 /* USER CODE END PV */
 
@@ -49,7 +56,10 @@ ADC_HandleTypeDef hadc;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+void EXTI0_1_IRQHandler(void);
+uint32_t pollADC(void);
 
 /* USER CODE END PFP */
 
@@ -87,6 +97,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -96,6 +107,15 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	HAL_ADC_Start(&hadc);
+	  //if (mode ==1) {
+		  sprintf(buffer, "\r\nADC: %ld\r\n", reading); // format the message
+		  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000); // Send ADC over UART
+		  sprintf(buffer, "\r\nmode: %ld\r\n", mode); // format the message
+		  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000); // Send ADC over UART
+
+	  //}
+	HAL_ADC_Stop(&hadc);
 
     /* USER CODE BEGIN 3 */
   }
@@ -194,6 +214,41 @@ static void MX_ADC_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -208,6 +263,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : B1_Pin */
+  GPIO_InitStruct.Pin = B1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PA1 */
   GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -218,6 +279,24 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void EXTI0_1_IRQHandler(void)
+{
+
+	// Correct debouncing:
+	uint32_t current = HAL_GetTick();
+	for (int i = current; i < (current + 10); i++); //delay by 10 ticks
+
+	//if blue push button pressed, read once from ADC
+	reading = pollADC(); //get ADC value (this reads from the pot)
+	mode = 1;
+	HAL_GPIO_EXTI_IRQHandler(B1_Pin); // Clear interrupt flags
+}
+
+uint32_t pollADC(void){
+	HAL_ADC_PollForConversion(&hadc, 500);
+	uint32_t val = HAL_ADC_GetValue(&hadc); // get digital value
+	return val;
+}
 
 /* USER CODE END 4 */
 
