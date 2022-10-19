@@ -5,11 +5,12 @@ Info:		EEE3096S Mini Project - Transmitter
 Author:		Shameera Cassim, Tristyn Ferreiro
 *******************************************************
 This project is used for the transmitter for the LoT system.
-  ******************************************************************************
+******************************************************************************
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stdio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -40,17 +41,13 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-//used to check whether the ADC should be read or not
-int ADCRead = 0;
 
-//used to store ADC reading
-uint32_t reading;
+uint8_t ADCRead = 0;//used to check whether the ADC should be read or not
+uint32_t reading; //used to store ADC reading
+uint8_t samplesSent = 0; //used to keep track of number of samples sent
+char buffer[20]; //used for UART transmission
 
-//used to keep track of number of samples sent
-int samplesSent = 0;
-
-//used for UART transmission
-char buffer[20];
+uint8_t mode = 0; // transmission mode defaults to send reading
 
 /* USER CODE END PV */
 
@@ -64,6 +61,7 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void EXTI0_1_IRQHandler(void);
 uint32_t pollADC(void);
+uint8_t decToBinConvert(uint8_t decimalValue); // converts decimal to binary
 
 /* USER CODE END PFP */
 
@@ -117,23 +115,24 @@ int main(void)
   while (1)
   {
 	  if (ADCRead == 1) {
-		  	//start ADC
-		  	HAL_ADC_Start(&hadc);
+		  	HAL_ADC_Start(&hadc); 	//start ADC
+			reading = pollADC(); 	//get ADC value (this reads from the pot)
+			HAL_ADC_Stop(&hadc); 	//stop ADC
+			ADCRead = 0;			//reset ADCRead so that ADC only reads once
 
-		  	//get ADC value (this reads from the pot)
-			reading = pollADC();
-
-			//stop ADC
-			HAL_ADC_Stop(&hadc);
-
-			//reset ADCRead so that ADC only read once
-			ADCRead = 0;
-
-			//print out ADC reading
+			/*** TEST POINT ****/
 			// format the message
-			sprintf(buffer, "\r\nADC: %d\r\n", reading);
-			// Send ADC over UART
-			HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
+			//sprintf(buffer, "\r\nADC: %ld\r\n", reading);
+			// Send ADC reading over UART
+			//HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+
+			uint8_t value = 13;
+			uint8_t binary = decToBinConvert(value);
+
+			/*** TEST POINT ****/
+			sprintf(buffer, "\r\nbinary: %d\r\n", binary);
+			// Send ADC reading over UART
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 	  }
 
 	  HAL_Delay(5);
@@ -398,17 +397,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/*
+ *
+ *
+ */
 void EXTI0_1_IRQHandler(void)
 {
-	//TASK 1
-	/* Switch between delay frequencies 1 and 2 Hz */
-
 	// Correct debouncing:
 	uint32_t current = HAL_GetTick();
 	for (int i = current; i < (current + 10); i++); //delay by 10 ticks
 
+	mode = 0; // enter "transmit reading mode" when blue pushbutton pressed
+
 	//if blue push button pressed,  set ADCRead to 1 so that ADC read once
 	ADCRead = 1;
+
 
 	// Clear interrupt flags
 	HAL_GPIO_EXTI_IRQHandler(B1_Pin);
@@ -419,6 +422,28 @@ uint32_t pollADC(void){
 	// get digital value
 	uint32_t val = HAL_ADC_GetValue(&hadc);
 	return val;
+}
+
+/*
+ * This method takes in a decimal value and converts it to its decimal version. The
+ * binary bits are then returned.
+ */
+uint8_t decToBinConvert(uint8_t decimalValue){
+	uint8_t binary = 0; // the binary number
+	uint8_t temp = decimalValue;
+	if(decimalValue<256){
+		  int remainder, scale = 1; // i is the scaling factor used to store the bit in the correct position.
+
+		  while (temp!=0) {
+		    remainder = temp % 2;
+		    temp /= 2; // floors result of division because temp is integer
+
+		    binary += remainder * scale; // store the remainder in the binary number
+		    scale *= 10; // increase the scale ten times
+		  }
+
+		  return binary;
+	}
 }
 
 /* USER CODE END 4 */
