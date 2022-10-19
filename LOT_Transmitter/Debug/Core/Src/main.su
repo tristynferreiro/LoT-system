@@ -5,8 +5,8 @@
 ../Core/Src/main.c:310:13:MX_USART2_UART_Init	8	static
 ../Core/Src/main.c:343:13:MX_DMA_Init	16	static
 ../Core/Src/main.c:364:13:MX_GPIO_Init	56	static
-../Core/Src/main.c:409:6:EXTI0_1_IRQHandler	16	static
-../Core/Src/main.c:425:10:pollADC	16	static
-../Core/Src/main.c:438:10:decToBinConvert	32	static
-../Core/Src/main.c:461:6:transmit	16	static
-../Core/Src/main.c:473:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:410:6:EXTI0_1_IRQHandler	16	static
+../Core/Src/main.c:430:9:pollADC	16	static
+../Core/Src/main.c:444:10:decToBinConvert	32	static
+../Core/Src/main.c:467:6:transmit	16	static
+../Core/Src/main.c:485:6:Error_Handler	8	static,ignoring_inline_asm

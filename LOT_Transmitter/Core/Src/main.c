@@ -43,7 +43,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 /* USER CODE BEGIN PV */
 
 uint8_t ADCRead = 0;//used to check whether the ADC should be read or not
-uint32_t reading; //used to store ADC reading
+uint8_t reading; //used to store ADC reading
 uint8_t samplesSent = 0; //used to keep track of number of samples sent
 char buffer[20]; //used for UART transmission
 
@@ -61,8 +61,8 @@ static void MX_USART2_UART_Init(void);
 static void MX_ADC_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-void EXTI0_1_IRQHandler(void);
-uint32_t pollADC(void);
+void EXTI0_1_IRQHandler(void); //reads ADC once if blue push button pressed
+uint8_t pollADC(void); //used to read value from ADC
 uint8_t* decToBinConvert(uint8_t decimalValue); // converts decimal to binary
 void transmit(uint8_t binaryValue); // transmits the data by pulsing the light
 
@@ -402,9 +402,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 /*
- *
- *
+ * This method takes is used to set the user transmit mode to 0 and set the ADCRead value
+ * to one if the blue push button is pressed so that the ADC is read in the main method.
  */
 void EXTI0_1_IRQHandler(void)
 {
@@ -422,12 +423,17 @@ void EXTI0_1_IRQHandler(void)
 	HAL_GPIO_EXTI_IRQHandler(B1_Pin);
 }
 
-uint32_t pollADC(void){
+/*
+ * This method takes polls the ADC, gets the value and returns the
+ * 8 bit unsigned integer value.
+ */
+uint8_t pollADC(void){
 	HAL_ADC_PollForConversion(&hadc, 500);
 	// get digital value
 	uint32_t val = HAL_ADC_GetValue(&hadc);
 	return val;
 }
+
 
 /*
  * This method takes in a decimal value and converts it to its decimal version. The
