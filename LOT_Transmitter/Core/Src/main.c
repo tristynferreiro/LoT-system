@@ -131,12 +131,13 @@ int main(void)
 
 			uint8_t value = 13;
 			uint8_t *binaryArray = decToBinConvert(value);
+			for(int i =7;i>0;i--){
+				/*** TEST POINT ****/
+				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i-1) );
+				// Send ADC reading over UART
+				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+			}
 
-			/*** TEST POINT ****/
-			sprintf(buffer, "\r\nbinary: %d\r\n",*binaryArray );
-			// Send ADC reading over UART
-			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-	  }
 
 	  HAL_Delay(5);
     /* USER CODE END WHILE */
