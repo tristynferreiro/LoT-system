@@ -19,11 +19,11 @@ This project is used for the transmitter for the LoT system.
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define RATE 1			// This is the delay between light flashes/ transmitting bit
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,6 +49,8 @@ char buffer[20]; //used for UART transmission
 
 uint8_t mode = 0; // transmission mode defaults to send reading
 
+uint8_t binary[7]; // array to store bits of the binary number
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,7 +63,8 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void EXTI0_1_IRQHandler(void);
 uint32_t pollADC(void);
-uint8_t decToBinConvert(uint8_t decimalValue); // converts decimal to binary
+uint8_t* decToBinConvert(uint8_t decimalValue); // converts decimal to binary
+void transmit(uint8_t binaryValue); // transmits the data by pulsing the light
 
 /* USER CODE END PFP */
 
@@ -127,10 +130,10 @@ int main(void)
 			//HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 
 			uint8_t value = 13;
-			uint8_t binary = decToBinConvert(value);
+			uint8_t *binaryArray = decToBinConvert(value);
 
 			/*** TEST POINT ****/
-			sprintf(buffer, "\r\nbinary: %d\r\n", binary);
+			sprintf(buffer, "\r\nbinary: %d\r\n",*binaryArray );
 			// Send ADC reading over UART
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 	  }
@@ -427,9 +430,11 @@ uint32_t pollADC(void){
 /*
  * This method takes in a decimal value and converts it to its decimal version. The
  * binary bits are then returned.
+ * The system pulses light to transmit the data and so needs known logic levels (1s and 0s) to know
+ * when to turn the light on and off.
  */
-uint8_t decToBinConvert(uint8_t decimalValue){
-	uint8_t binary = 0; // the binary number
+uint8_t* decToBinConvert(uint8_t decimalValue){
+	int counter=0;
 	uint8_t temp = decimalValue;
 	if(decimalValue<256){
 		  int remainder, scale = 1; // i is the scaling factor used to store the bit in the correct position.
@@ -438,12 +443,25 @@ uint8_t decToBinConvert(uint8_t decimalValue){
 		    remainder = temp % 2;
 		    temp /= 2; // floors result of division because temp is integer
 
-		    binary += remainder * scale; // store the remainder in the binary number
+		    binary[counter] += remainder * scale; // store the remainder in the binary number
+		    counter++;
+
 		    scale *= 10; // increase the scale ten times
 		  }
 
 		  return binary;
 	}
+}
+
+/*
+ * This method transmits the data by pulsing a light. This transmission follows the LoT message
+ * protocol structure:
+ * 	Start bit (1)		Mode(0/1)		Message (8bits)			Stop/Continue (0/1)
+ */
+void transmit(uint8_t binaryValue){
+
+	// Transmit Start Bit
+
 }
 
 /* USER CODE END 4 */
