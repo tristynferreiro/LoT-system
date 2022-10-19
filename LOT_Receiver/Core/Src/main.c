@@ -26,8 +26,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-# define REF 0.5		//Voltage of ADC when data received
-#define PERIOD 1000		//Time between samples
+# define REF 3900		//Voltage of ADC when data received
+#define PERIOD 5000		//Time between samples
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -102,17 +102,29 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	  // Wait until button is pressed to start listening
 	  if (listening == 1)
 	  {
+		  ADC1->CR |= ADC_CR_ADSTART;
+
+		  //Wait for ISR to change to read values
+		  while((ADC1->ISR & ADC_ISR_EOC)==0);
 		  // Wait for start bit from transmitter
-		  while(ADC1<REF);
+		  while(ADC1->DR<REF);
+		  ADC1->CR &= ~ADC_CR_ADSTART;
 
 		  // Once start bit has been received, store the next 8 bits of data in the data array
-		  for (i = 7; i >= 0; i--)
+		  for (int i = 7; i >= 0; i--)
 		  {
+			  //Tell ADC to start measuring
+			  ADC1->CR |= ADC_CR_ADSTART;
+
+			  //Wait for ISR to change to read values
+			  while((ADC1->ISR & ADC_ISR_EOC)==0);
+
 			  HAL_Delay(PERIOD);
-			  if (ADC1 < REF)
+			  if (ADC1->DR < REF)
 			  {
 				  data[i] = 0;
 			  }
@@ -120,6 +132,7 @@ int main(void)
 			  {
 				  data[i] = 1;
 			  }
+			  ADC1->CR &= ~ADC_CR_ADSTART;
 		  }
 
 		  // Convert data into single 8 bit int and store in allSamples array
@@ -224,7 +237,10 @@ static void MX_ADC_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC_Init 2 */
+  ADC1->CR|=ADC_CR_ADEN;
 
+    // Wait for ISR to be set
+    while((ADC1->ISR & ADC_ISR_ADRDY)==0);
   /* USER CODE END ADC_Init 2 */
 
 }
@@ -258,6 +274,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -281,7 +301,7 @@ uint8_t arrayToData(void)
 {
 	// convert binary array to one byte
 	uint8_t output = 0;
-	for(i = 0; i < 8; i++)
+	for(int i = 0; i < 8; i++)
 	{
 		output += data[i]*(2^i);
 	}

@@ -140,6 +140,10 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f0xx.s).                    */
 /******************************************************************************/
 
+/**
+  * @brief This function handles EXTI line 0 and 1 interrupts.
+  */
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
