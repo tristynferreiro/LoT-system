@@ -133,11 +133,11 @@ int main(void)
 			uint8_t *binaryArray = decToBinConvert(value);
 			for(int i =7;i>0;i--){
 				/*** TEST POINT ****/
-				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i-1) );
+				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i-1));
 				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
-
+	  }
 
 	  HAL_Delay(5);
     /* USER CODE END WHILE */
@@ -147,6 +147,7 @@ int main(void)
   HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
   /* USER CODE END 3 */
 }
+
 
 /**
   * @brief System Clock Configuration
@@ -438,7 +439,7 @@ uint8_t* decToBinConvert(uint8_t decimalValue){
 	int counter=0;
 	uint8_t temp = decimalValue;
 	if(decimalValue<256){
-		  int remainder, scale = 1; // i is the scaling factor used to store the bit in the correct position.
+		  int remainder=0; // i is the scaling factor used to store the bit in the correct position.
 
 		  while (temp!=0) {
 		    remainder = temp % 2;
@@ -460,6 +461,12 @@ uint8_t* decToBinConvert(uint8_t decimalValue){
 void transmit(uint8_t binaryValue){
 
 	// Transmit Start Bit
+
+	if(mode){ //if mode ==1, enter counter transmission mode
+
+	}else{
+
+	}
 
 }
 
