@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := LOT_Receiver
+BUILD_ARTIFACT_NAME := LoT
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-LOT_Receiver.elf \
+LoT.elf \
 
 MAP_FILES += \
-LOT_Receiver.map \
+LoT.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-LOT_Receiver.list \
+LoT.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: LOT_Receiver.elf secondary-outputs
+main-build: LoT.elf secondary-outputs
 
 # Tool invocations
-LOT_Receiver.elf LOT_Receiver.map: $(OBJS) $(USER_OBJS) D:\UCT\ 2022\EEE3096S\ Embedded\ Systems\ II\Project\LoT_System\LOT_Receiver\STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LOT_Receiver.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\UCT 2022\EEE3096S Embedded Systems II\Project\LoT_System\LOT_Receiver\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LOT_Receiver.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LoT.elf LoT.map: $(OBJS) $(USER_OBJS) D:\UCT\ 2022\EEE3096S\ Embedded\ Systems\ II\Project\LoT_Receiver\STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LoT.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\UCT 2022\EEE3096S Embedded Systems II\Project\LoT_Receiver\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LoT.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-LOT_Receiver.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LOT_Receiver.list"
+LoT.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LoT.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) LOT_Receiver.elf LOT_Receiver.list LOT_Receiver.map default.size.stdout
+	-$(RM) LoT.elf LoT.list LoT.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

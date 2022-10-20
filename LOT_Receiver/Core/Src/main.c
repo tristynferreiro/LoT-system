@@ -26,12 +26,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-# define REF 3900		//Voltage of ADC when data received
-#define PERIOD 5000		//Time between samples
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define REF 0.5		//Voltage of ADC when data received
+#define PERIOD 1000		//Time between samples
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -42,19 +43,26 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 uint8_t listening = 0;
 uint8_t data[8];
 uint8_t samples = 0;
 uint8_t allSamples[20];
+
+char ADC_print[25];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+void EXTI0_1_IRQHandler(void);
 uint8_t arrayToData(void);
+uint32_t pollADC(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -91,6 +99,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -102,48 +111,29 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  uint32_t adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  	  // Wait until button is pressed to start listening
+	  	  if (listening == 1)
+	  	  {
+	  		  //read first ADC value
+	  		  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 
-	  // Wait until button is pressed to start listening
-	  if (listening == 1)
-	  {
-		  ADC1->CR |= ADC_CR_ADSTART;
+	  		  // Wait for start bit from transmitter
+	  		  while(adc<REF)
+	  		  {
+	  			  //update ADC value
+	  			  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  		  }
 
-		  //Wait for ISR to change to read values
-		  while((ADC1->ISR & ADC_ISR_EOC)==0);
-		  // Wait for start bit from transmitter
-		  while(ADC1->DR<REF);
-		  ADC1->CR &= ~ADC_CR_ADSTART;
+	  		  int cont = 1;
+	  		  while(cont)
+	  		  {
+	  			  readSignal();
+	  			  HAL_Delay(PERIOD);
+	  			  cont = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  		  }
+	  	  }
 
-		  // Once start bit has been received, store the next 8 bits of data in the data array
-		  for (int i = 7; i >= 0; i--)
-		  {
-			  //Tell ADC to start measuring
-			  ADC1->CR |= ADC_CR_ADSTART;
-
-			  //Wait for ISR to change to read values
-			  while((ADC1->ISR & ADC_ISR_EOC)==0);
-
-			  HAL_Delay(PERIOD);
-			  if (ADC1->DR < REF)
-			  {
-				  data[i] = 0;
-			  }
-			  else
-			  {
-				  data[i] = 1;
-			  }
-			  ADC1->CR &= ~ADC_CR_ADSTART;
-		  }
-
-		  // Convert data into single 8 bit int and store in allSamples array
-		  allSamples[samples] = arrayToData();
-
-		  // Increase sample counter
-		  samples++;
-
-		  // Stop listening
-		  listening = 0;
-	  }
   }
   /* USER CODE END 3 */
 }
@@ -239,9 +229,44 @@ static void MX_ADC_Init(void)
   /* USER CODE BEGIN ADC_Init 2 */
   ADC1->CR|=ADC_CR_ADEN;
 
-    // Wait for ISR to be set
-    while((ADC1->ISR & ADC_ISR_ADRDY)==0);
+  // Wait for ISR to be set
+  while((ADC1->ISR & ADC_ISR_ADRDY)==0);
   /* USER CODE END ADC_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
@@ -267,6 +292,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : Signal_in_Pin */
+  GPIO_InitStruct.Pin = Signal_in_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(Signal_in_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : LD4_Pin LD3_Pin */
   GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -283,18 +314,36 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void EXTI0_1_IRQHandler(void)
 {
-	uint8_t start = HAL_GetTick();
-	while((start+20)>HAL_GetTick());
+  /* USER CODE BEGIN EXTI0_1_IRQn 0 */
 	if (B1_Pin)
-	{
-		if (listening == 0)
 		{
-			listening = 1;
+			if (listening == 0)
+			{
+				listening = 1;
+			}
 		}
-	}
+  /* USER CODE END EXTI0_1_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(B1_Pin);
+  /* USER CODE BEGIN EXTI0_1_IRQn 1 */
 
+  /* USER CODE END EXTI0_1_IRQn 1 */
+}
 
-	HAL_GPIO_EXTI_IRQHandler(B1_Pin); // Clear interrupt flags
+uint32_t pollADC(void){
+	/* Read value from the ADC */
+
+	//Tell ADC to start measuring
+	ADC1->CR |= ADC_CR_ADSTART;
+
+	//Wait for ISR to change to read values
+	while((ADC1->ISR & ADC_ISR_EOC)==0);
+
+	//Read value at ADC
+	uint32_t val = ADC1->DR;
+
+	//Switch off ADC
+	ADC1->CR &= ~ADC_CR_ADSTART;
+	return val;
 }
 
 uint8_t arrayToData(void)
@@ -303,12 +352,85 @@ uint8_t arrayToData(void)
 	uint8_t output = 0;
 	for(int i = 0; i < 8; i++)
 	{
-		output += data[i]*(2^i);
+		output = output + ((data[i])<<i);
 	}
+	//reset data to 0
 	memset(data, 0, sizeof data);
 	return output;
 }
 
+void readSignal(void)
+{
+	//add an initial delay
+	  HAL_Delay(PERIOD);
+	  uint32_t adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  //check mode of operation
+	  if (adc < REF) //save data mode
+	  {
+		// Once start bit has been received, store the next 8 bits of data in the data array
+		  for (int i = 7; i >= 0; i--)
+		  {
+			  HAL_Delay(PERIOD);
+			  //read adc value
+			  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+			sprintf(ADC_print, "ADC: %d\r\n\r\n",adc);
+			  HAL_UART_Transmit(&huart2, ADC_print, sizeof(ADC_print), 1000);
+			  if (adc < REF)
+			  {
+				  data[i] = 0;
+			  }
+			  else
+			  {
+				  data[i] = 1;
+			  }
+		  }
+
+		  // Convert data into single 8 bit int and store in allSamples array
+		  allSamples[samples] = arrayToData();
+
+		  // Increase sample counter
+		  samples++;
+
+		  // Stop listening
+		  listening = 0;
+		  sprintf(ADC_print, "Val: %d\r\n\r\n",allSamples[samples-1]);
+		  HAL_UART_Transmit(&huart2, ADC_print, sizeof(ADC_print), 1000);
+		  HAL_Delay(5000);
+	  }
+	else //compare no samples
+	  {
+		  for(int i = 7; i >= 0; i--)
+		  {
+			  HAL_Delay(PERIOD);
+			  //read adc value
+			  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+			sprintf(ADC_print, "ADC: %d\r\n\r\n",adc);
+			  HAL_UART_Transmit(&huart2, ADC_print, sizeof(ADC_print), 1000);
+			  if (adc < REF)
+			  {
+				  data[i] = 0;
+			  }
+			  else
+			  {
+				  data[i] = 1;
+			  }
+		  }
+		  uint8_t transmit_samples = arrayToData();
+		  if (transmit_samples == samples)
+		  {
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle blue pin
+			  HAL_Delay(500);
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle blue pin
+		  }
+		  else
+		  {
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle green pin
+			  HAL_Delay(500);
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle green pin
+			  samples = transmit_samples;
+		  }
+	  }
+}
 /* USER CODE END 4 */
 
 /**
