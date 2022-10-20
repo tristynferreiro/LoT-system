@@ -53,7 +53,8 @@ char buffer[20]; //used for UART transmission
 
 uint8_t mode = 0; // transmission mode defaults to send reading
 
-uint8_t binary[7]; // array to store bits of the binary number
+uint8_t binary[8]; // array to store bits of the binary number
+uint8_t transmissionCounter = 0; // this keeps track of how many readings have been transmitted.
 
 /* USER CODE END PV */
 
@@ -114,6 +115,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
 	  if (ADCRead == 1) {
@@ -130,15 +132,29 @@ int main(void)
 
 			uint8_t value = 13;
 			uint8_t *binaryArray = decToBinConvert(value);
-			/*** TEST POINT ****/
-			for(int i =6;i>-1;i--){
+			/*** TEST POINT: prints out the binary bits****/
+			for(int i =7;i>-1;i--){
 				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
 				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
 
+			// TRANSMIT the reading
 			transmit(binaryArray);
 
+	  } else if(mode){ // if transmitter is in counter transmission mode
+
+		  uint8_t *binaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
+
+		  /*** TEST POINT: prints out the binary bits****/
+		  for(int i =7;i>-1;i--){
+			  sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
+			  // Send ADC reading over UART
+			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+		  }
+
+		  // TRANSMIT the counter value
+		  transmit(binaryArray);
 	  }
 
 	  HAL_Delay(5);
@@ -462,6 +478,10 @@ void transmit(uint8_t *binaryValue){
 	// Transmit mode and message
 	if(mode){ //if mode ==1, enter counter transmission mode
 		// Transmit MODE bit
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,COUNTER_MODE);
+		HAL_Delay(delay);
+
+
 		//HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,COUNTER_MODE);
 		//HAL_Delay(delay);
 
@@ -475,6 +495,8 @@ void transmit(uint8_t *binaryValue){
 			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,*(binaryValue+i));
 			HAL_Delay(delay);
 		}
+
+		transmissionCounter+=1; //increment the number of readings transmitted
 
 		// Transmit STOP/continue bit
 		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,STOP);

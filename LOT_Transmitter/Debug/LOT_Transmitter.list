@@ -37,13 +37,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  16 .debug_macro  00013a0d  00000000  00000000  00033778  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0001065c  00000000  00000000  00047185  2**0
+ 17 .debug_line   0001065e  00000000  00000000  00047185  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    0007553f  00000000  00000000  000577e1  2**0
+ 18 .debug_str    0007553f  00000000  00000000  000577e3  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000050  00000000  00000000  000ccd20  2**0
+ 19 .comment      00000050  00000000  00000000  000ccd22  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  000043d4  00000000  00000000  000ccd70  2**2
+ 20 .debug_frame  000043d4  00000000  00000000  000ccd74  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -4148,9 +4148,9 @@ int main(void)
  80020ca:	f000 f8a1 	bl	8002210 <MX_ADC_Init>
   MX_TIM3_Init();
  80020ce:	f000 f8fb 	bl	80022c8 <MX_TIM3_Init>
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
 	  if (ADCRead == 1) {
@@ -4224,7 +4224,6 @@ int main(void)
  8002142:	2b00      	cmp	r3, #0
  8002144:	dae8      	bge.n	8002118 <main+0x68>
 			}
-
 			transmit(binaryArray);
  8002146:	687b      	ldr	r3, [r7, #4]
  8002148:	0018      	movs	r0, r3

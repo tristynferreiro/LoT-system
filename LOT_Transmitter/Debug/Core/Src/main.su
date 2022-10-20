@@ -1,0 +1,12 @@
+../Core/Src/main.c:84:5:main	24	static
+../Core/Src/main.c:156:6:SystemClock_Config	80	static
+../Core/Src/main.c:197:13:MX_ADC_Init	24	static
+../Core/Src/main.c:251:13:MX_TIM3_Init	64	static
+../Core/Src/main.c:310:13:MX_USART2_UART_Init	8	static
+../Core/Src/main.c:343:13:MX_DMA_Init	16	static
+../Core/Src/main.c:364:13:MX_GPIO_Init	48	static
+../Core/Src/main.c:401:6:EXTI0_1_IRQHandler	16	static
+../Core/Src/main.c:418:9:pollADC	16	static
+../Core/Src/main.c:432:10:decToBinConvert	32	static
+../Core/Src/main.c:455:6:transmit	24	static
+../Core/Src/main.c:494:6:Error_Handler	8	static,ignoring_inline_asm
