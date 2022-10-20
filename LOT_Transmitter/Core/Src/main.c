@@ -10,7 +10,7 @@ This project is used for the transmitter for the LoT system.
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include "stdio.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -22,7 +22,7 @@ This project is used for the transmitter for the LoT system.
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RATE 1			// This is the delay between light flashes/ transmitting bit
+#define RATE 1			// [Hz] This is the delay between light flashes/ transmitting bit
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -63,7 +63,7 @@ static void MX_TIM3_Init(void);
 void EXTI0_1_IRQHandler(void); //reads ADC once if blue push button pressed
 uint8_t pollADC(void); //used to read value from ADC
 uint8_t* decToBinConvert(uint8_t decimalValue); // converts decimal to binary
-void transmit(uint8_t binaryValue); // transmits the data by pulsing the light
+void transmit(uint8_t* binaryValue); // transmits the data by pulsing the light
 
 /* USER CODE END PFP */
 
@@ -105,11 +105,6 @@ int main(void)
   MX_ADC_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
-  //TO DO:
-  //Create variables needed in while loop
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); //Start the PWM on TIM3 Channel 4 (Green LED)
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -130,12 +125,15 @@ int main(void)
 
 			uint8_t value = 13;
 			uint8_t *binaryArray = decToBinConvert(value);
-			for(int i =7;i>0;i--){
-				/*** TEST POINT ****/
-				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i-1));
+			/*** TEST POINT ****/
+			for(int i =6;i>-1;i--){
+				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
 				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
+
+			transmit(binaryArray);
+
 	  }
 
 	  HAL_Delay(5);
@@ -143,7 +141,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
   }
-  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
   /* USER CODE END 3 */
 }
 
@@ -403,10 +400,7 @@ void EXTI0_1_IRQHandler(void)
 	for (int i = current; i < (current + 10); i++); //delay by 10 ticks
 
 	mode = 0; // enter "transmit reading mode" when blue pushbutton pressed
-
-	//if blue push button pressed,  set ADCRead to 1 so that ADC read once
-	ADCRead = 1;
-
+	ADCRead = 1; //if blue push button pressed,  set ADCRead to 1 so that ADC read once
 
 	// Clear interrupt flags
 	HAL_GPIO_EXTI_IRQHandler(B1_Pin);
@@ -453,14 +447,18 @@ uint8_t* decToBinConvert(uint8_t decimalValue){
  * protocol structure:
  * 	Start bit (1)		Mode(0/1)		Message (8bits)			Stop/Continue (0/1)
  */
-void transmit(uint8_t binaryValue){
+void transmit(uint8_t *binaryValue){
+	//Calc delay between transmits
+	int delay = (1/RATE) *1000;
 
 	// Transmit Start Bit
-
 	if(mode){ //if mode ==1, enter counter transmission mode
 
 	}else{
-
+		for(int i =6;i>-1;i--){
+			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,*(binaryValue+i));
+			HAL_Delay(delay);
+		}
 	}
 
 }
@@ -481,6 +479,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
+
 
 #ifdef  USE_FULL_ASSERT
 /**
