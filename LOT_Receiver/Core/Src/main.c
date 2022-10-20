@@ -51,7 +51,7 @@ uint8_t data[8];
 uint8_t samples = 0;
 uint8_t allSamples[20];
 
-char ADC_print[25];
+char VAL_print[40];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,7 +62,6 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void EXTI0_1_IRQHandler(void);
 uint8_t arrayToData(void);
-uint32_t pollADC(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -111,21 +110,24 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  uint32_t adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 	  	  // Wait until button is pressed to start listening
 	  	  if (listening == 1)
 	  	  {
-	  		  //read first ADC value
-	  		  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  		  //print to UART
+	  		  memset(VAL_print, 0, sizeof(VAL_print));
+	  		  sprintf(VAL_print, "Waiting...\r\n\r\n");
+	  		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+	  		  uint32_t state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 
 	  		  // Wait for start bit from transmitter
-	  		  while(adc<REF)
+	  		  while(state<REF)
 	  		  {
 	  			  //update ADC value
-	  			  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  			  state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 	  		  }
 
 	  		  int cont = 1;
+	  		  //while loop to check if more data is transmitted
 	  		  while(cont)
 	  		  {
 	  			  readSignal();
@@ -314,7 +316,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void EXTI0_1_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI0_1_IRQn 0 */
+	//if the button is pressed set the mode to listening
 	if (B1_Pin)
 		{
 			if (listening == 0)
@@ -322,28 +324,7 @@ void EXTI0_1_IRQHandler(void)
 				listening = 1;
 			}
 		}
-  /* USER CODE END EXTI0_1_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(B1_Pin);
-  /* USER CODE BEGIN EXTI0_1_IRQn 1 */
-
-  /* USER CODE END EXTI0_1_IRQn 1 */
-}
-
-uint32_t pollADC(void){
-	/* Read value from the ADC */
-
-	//Tell ADC to start measuring
-	ADC1->CR |= ADC_CR_ADSTART;
-
-	//Wait for ISR to change to read values
-	while((ADC1->ISR & ADC_ISR_EOC)==0);
-
-	//Read value at ADC
-	uint32_t val = ADC1->DR;
-
-	//Switch off ADC
-	ADC1->CR &= ~ADC_CR_ADSTART;
-	return val;
 }
 
 uint8_t arrayToData(void)
@@ -354,6 +335,7 @@ uint8_t arrayToData(void)
 	{
 		output = output + ((data[i])<<i);
 	}
+
 	//reset data to 0
 	memset(data, 0, sizeof data);
 	return output;
@@ -363,19 +345,19 @@ void readSignal(void)
 {
 	//add an initial delay
 	  HAL_Delay(PERIOD);
-	  uint32_t adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+	  uint32_t state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 	  //check mode of operation
-	  if (adc < REF) //save data mode
+	  if (state < REF) //save data mode
 	  {
 		// Once start bit has been received, store the next 8 bits of data in the data array
+		  memset(VAL_print, 0, sizeof(VAL_print));
+		  sprintf(VAL_print, "Receiving data values...\r\n");
+		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
 		  for (int i = 7; i >= 0; i--)
 		  {
 			  HAL_Delay(PERIOD);
-			  //read adc value
-			  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
-			sprintf(ADC_print, "ADC: %d\r\n\r\n",adc);
-			  HAL_UART_Transmit(&huart2, ADC_print, sizeof(ADC_print), 1000);
-			  if (adc < REF)
+			  state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+			  if (state < REF)
 			  {
 				  data[i] = 0;
 			  }
@@ -393,20 +375,23 @@ void readSignal(void)
 
 		  // Stop listening
 		  listening = 0;
-		  sprintf(ADC_print, "Val: %d\r\n\r\n",allSamples[samples-1]);
-		  HAL_UART_Transmit(&huart2, ADC_print, sizeof(ADC_print), 1000);
-		  HAL_Delay(5000);
+		  memset(VAL_print, 0, sizeof(VAL_print));
+		  sprintf(VAL_print, "Value Received: %d\r\n\r\n", allSamples[samples-1]);
+		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+		  //HAL_Delay(500);
 	  }
 	else //compare no samples
 	  {
+		memset(VAL_print, 0, sizeof(VAL_print));
+		sprintf(VAL_print, "Comparing number of transmissions...\r\n");
+		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
 		  for(int i = 7; i >= 0; i--)
 		  {
 			  HAL_Delay(PERIOD);
-			  //read adc value
-			  adc = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
-			sprintf(ADC_print, "ADC: %d\r\n\r\n",adc);
-			  HAL_UART_Transmit(&huart2, ADC_print, sizeof(ADC_print), 1000);
-			  if (adc < REF)
+			  //read pin value
+			  state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+
+			  if (state < REF)
 			  {
 				  data[i] = 0;
 			  }
@@ -415,18 +400,29 @@ void readSignal(void)
 				  data[i] = 1;
 			  }
 		  }
+
 		  uint8_t transmit_samples = arrayToData();
+		  memset(VAL_print, 0, sizeof(VAL_print));
+		  sprintf(VAL_print, "Number of transmissions: %d\r\n",transmit_samples);
+		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+
 		  if (transmit_samples == samples)
 		  {
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle blue pin
+			  memset(VAL_print, 0, sizeof(VAL_print));
+			  sprintf(VAL_print, "It's the same!! :)\r\n\r\n");
+			  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle green pin
 			  HAL_Delay(500);
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle blue pin
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle green pin
 		  }
 		  else
 		  {
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle green pin
+			  memset(VAL_print, 0, sizeof(VAL_print));
+			  sprintf(VAL_print, "It's not the same!! :(\r\n\r\n");
+			  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle blue pin
 			  HAL_Delay(500);
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle green pin
+			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle blue pin
 			  samples = transmit_samples;
 		  }
 	  }
