@@ -62,6 +62,8 @@ void Error_Handler(void);
 #define B1_Pin GPIO_PIN_0
 #define B1_GPIO_Port GPIOA
 #define B1_EXTI_IRQn EXTI0_1_IRQn
+#define Laser_Diode_Pin GPIO_PIN_5
+#define Laser_Diode_GPIO_Port GPIOC
 #define LD4_Pin GPIO_PIN_8
 #define LD4_GPIO_Port GPIOC
 #define SWDIO_Pin GPIO_PIN_13
