@@ -10,7 +10,7 @@ This project is used for the transmitter for the LoT system.
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stdio.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -138,24 +138,34 @@ int main(void)
 				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
+			mode = 0;
 
 			// TRANSMIT the reading
 			transmit(binaryArray);
 
-	  } else if(mode){ // if transmitter is in counter transmission mode
-
-		  uint8_t *binaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
-
-		  /*** TEST POINT: prints out the binary bits****/
-		  for(int i =7;i>-1;i--){
-			  sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
-			  // Send ADC reading over UART
-			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+	  }
+	  else if (HAL_GPIO_ReadPin(GPIOC, B2_Pin)) { // if transmitter is in counter transmission mode
+		  mode = 1;
+		  if (mode) {
+			  	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,START);
 		  }
 
+		//  uint8_t *binaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
+
+		  /*** TEST POINT: prints out the binary bits****/
+		//  for(int i =7;i>-1;i--){
+		//	  sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
+			  // Send ADC reading over UART
+		//	  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+		//  }
+
 		  // TRANSMIT the counter value
-		  transmit(binaryArray);
+		  //transmit(binaryArray);
+
+		  //set mode back to 0
+		//  mode = 0;
 	  }
+
 
 	  HAL_Delay(5);
     /* USER CODE END WHILE */
@@ -383,11 +393,17 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : B2_Pin */
+  GPIO_InitStruct.Pin = B2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(B2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -523,7 +539,6 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
 
 #ifdef  USE_FULL_ASSERT
 /**
