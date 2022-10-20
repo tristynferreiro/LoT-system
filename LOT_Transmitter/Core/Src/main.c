@@ -49,7 +49,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 uint8_t ADCRead = 0;//used to check whether the ADC should be read or not
 uint8_t reading; //used to store ADC reading
 uint8_t samplesSent = 0; //used to keep track of number of samples sent
-char buffer[20]; //used for UART transmission
+char buffer[40]; //used for UART transmission
 
 uint8_t mode = 0; // transmission mode defaults to send reading
 
@@ -126,15 +126,24 @@ int main(void)
 
 			/*** TEST POINT ****/
 			// format the message
-			sprintf(buffer, "\r\nADC: %ld\r\n", reading);
+			sprintf(buffer, "\r\nADC read: %ld\r\n", reading);
+
 			// Send ADC reading over UART
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 
 			uint8_t value = 13;
-			uint8_t *binaryArray = decToBinConvert(value);
+			uint8_t *binaryArray = decToBinConvert(reading);
+
 			/*** TEST POINT: prints out the binary bits****/
+			memset(buffer, 0, sizeof(buffer));
+			sprintf(buffer, "\r\Binary: ");
+
+			// Send ADC reading over UART
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+			memset(buffer, 0, sizeof(buffer));
+
 			for(int i =7;i>-1;i--){
-				sprintf(buffer, "\r\nbinary: %d",*(binaryArray+i));
+				sprintf(buffer, "%d",*(binaryArray+i));
 				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
@@ -143,21 +152,40 @@ int main(void)
 			transmit(binaryArray);
 			transmissionCounter+=1; //increment the number of readings transmitted
 
-			sprintf(buffer, "Transmitted\r\n");
+			sprintf(buffer, "\r\nTransmitted\r\n");
+
 			// Send ADC reading over UART
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-	  }else if(HAL_GPIO_ReadPin(GPIOC, B2_Pin)){ // if transmitter is in counter transmission mode
+	  }
+
+	  else if(HAL_GPIO_ReadPin(GPIOC, B2_Pin)){ // if transmitter is in counter transmission mode
 		  mode = 1;
+		  /*** TEST POINT ****/
+		  			// format the message
+		  			sprintf(buffer, "\r\nno. Transmissions: %ld\r\n", transmissionCounter);
+
+		  			// Send ADC reading over UART
+		  			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+
 		  uint8_t *cbinaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
 		  /*** TEST POINT: prints out the binary bits****/
-		  for(int i =7;i>-1;i--){
-			  sprintf(buffer, "\r\nc_binary: %d",*(cbinaryArray+i));
-			  // Send ADC reading over UART
-			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-		  }
+		  			memset(buffer, 0, sizeof(buffer));
+		  			sprintf(buffer, "\r\Binary: ");
+
+		  			// Send ADC reading over UART
+		  			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+		  			memset(buffer, 0, sizeof(buffer));
+
+		  			for(int i =7;i>-1;i--){
+		  				sprintf(buffer, "%d",*(cbinaryArray+i));
+		  				// Send ADC reading over UART
+		  				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+		  			}
 
 		  // TRANSMIT the counter value
 		  transmit(cbinaryArray);
+		  sprintf(buffer, "\r\nTransmitted\r\n");
+		  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 	  }
     /* USER CODE END WHILE */
 
