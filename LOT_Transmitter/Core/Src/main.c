@@ -23,6 +23,11 @@ This project is used for the transmitter for the LoT system.
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define RATE 1			// [Hz] This is the delay between light flashes/ transmitting bit
+#define START 1			// start transmission bit is HIGH
+#define READING_MODE 0	// mode 0 is transmit data reading mode
+#define COUNTER_MODE 1	// mode 1 is transmit counter mode
+#define STOP 0			// if transmission done
+#define CONTINUE 1		// If more than one message
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -451,15 +456,32 @@ void transmit(uint8_t *binaryValue){
 	//Calc delay between transmits
 	int delay = (1/RATE) *1000;
 
-	// Transmit Start Bit
+	// Transmit START Bit
+	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,START);
+	HAL_Delay(delay);
+	// Transmit mode and message
 	if(mode){ //if mode ==1, enter counter transmission mode
+		// Transmit MODE bit
+		//HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,COUNTER_MODE);
+		//HAL_Delay(delay);
 
 	}else{
+		// Transmit MODE bit
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,READING_MODE);
+		HAL_Delay(delay);
+
+		// Transmit MESSAGE: the 8 bit binary value
 		for(int i =6;i>-1;i--){
 			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,*(binaryValue+i));
 			HAL_Delay(delay);
 		}
+
+		// Transmit STOP/continue bit
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,STOP);
+		HAL_Delay(delay);
+		//HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,GPIO_PIN_RESET);
 	}
+
 
 }
 
