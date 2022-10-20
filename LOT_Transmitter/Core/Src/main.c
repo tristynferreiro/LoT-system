@@ -56,6 +56,7 @@ uint8_t mode = 0; // transmission mode defaults to send reading
 uint8_t binary[8]; // array to store bits of the binary number
 uint8_t transmissionCounter = 0; // this keeps track of how many readings have been transmitted.
 
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,9 +126,9 @@ int main(void)
 
 			/*** TEST POINT ****/
 			// format the message
-			//sprintf(buffer, "\r\nADC: %ld\r\n", reading);
+			sprintf(buffer, "\r\nADC: %ld\r\n", reading);
 			// Send ADC reading over UART
-			//HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 
 			uint8_t value = 13;
 			uint8_t *binaryArray = decToBinConvert(value);
@@ -142,21 +143,21 @@ int main(void)
 			transmit(binaryArray);
 			transmissionCounter+=1; //increment the number of readings transmitted
 
-	  }else if(transmissionCounter==2){ // if transmitter is in counter transmission mode
+			sprintf(buffer, "Transmitted\r\n");
+			// Send ADC reading over UART
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+	  }else if(HAL_GPIO_ReadPin(GPIOC, B2_Pin)){ // if transmitter is in counter transmission mode
 		  mode = 1;
-		  uint8_t *binaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
-
+		  uint8_t *cbinaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
 		  /*** TEST POINT: prints out the binary bits****/
 		  for(int i =7;i>-1;i--){
-			  sprintf(buffer, "\r\nc_binary: %d",*(binaryArray+i));
+			  sprintf(buffer, "\r\nc_binary: %d",*(cbinaryArray+i));
 			  // Send ADC reading over UART
 			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 		  }
 
 		  // TRANSMIT the counter value
-		  transmit(binaryArray);
-
-		  transmissionCounter+=1;
+		  transmit(cbinaryArray);
 	  }
     /* USER CODE END WHILE */
 
@@ -369,11 +370,17 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : B2_Pin */
+  GPIO_InitStruct.Pin = B2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(B2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -432,6 +439,7 @@ uint8_t pollADC(void){
  * when to turn the light on and off.
  */
 uint8_t* decToBinConvert(uint8_t decimalValue){
+	memset(binary, 0, sizeof(binary));
 	int counter=0;
 	uint8_t temp = decimalValue;
 	if(decimalValue<256){

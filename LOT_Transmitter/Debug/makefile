@@ -60,8 +60,8 @@ all: main-build
 main-build: LOT_Transmitter.elf secondary-outputs
 
 # Tool invocations
-LOT_Transmitter.elf LOT_Transmitter.map: $(OBJS) $(USER_OBJS) /Users/tris/Desktop/LOT_Transmitter/STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LOT_Transmitter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"/Users/tris/Desktop/LOT_Transmitter/STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LOT_Transmitter.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LOT_Transmitter.elf LOT_Transmitter.map: $(OBJS) $(USER_OBJS) C:\Users\9510\ i9\Desktop\LoT_System\LOT_Transmitter\STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LOT_Transmitter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\9510 i9\Desktop\LoT_System\LOT_Transmitter\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LOT_Transmitter.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
