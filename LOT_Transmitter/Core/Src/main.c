@@ -10,10 +10,9 @@ This project is used for the transmitter for the LoT system.
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -115,7 +114,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
+  int counter = 0;
   while (1)
   {
 	  if (ADCRead == 1) {
@@ -144,27 +143,23 @@ int main(void)
 			transmit(binaryArray);
 
 	  }
-	  else if (HAL_GPIO_ReadPin(GPIOC, B2_Pin)) { // if transmitter is in counter transmission mode
+	  else if (counter ==10) { // if transmitter is in counter transmission mode
 		  mode = 1;
-		  if (mode) {
-			  	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,START);
+
+		  uint8_t value = 1;
+		  uint8_t *binaryArray = decToBinConvert(value);
+		  /*** TEST POINT: prints out the binary bits****/
+		  for(int i =7;i>-1;i--){
+			  sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
+			  // Send ADC reading over UART
+			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 		  }
 
-		//  uint8_t *binaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
-
-		  /*** TEST POINT: prints out the binary bits****/
-		//  for(int i =7;i>-1;i--){
-		//	  sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
-			  // Send ADC reading over UART
-		//	  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-		//  }
-
-		  // TRANSMIT the counter value
-		  //transmit(binaryArray);
-
-		  //set mode back to 0
-		//  mode = 0;
+		  // TRANSMIT the reading
+		  transmit(binaryArray);
+		  //mode = 0;
 	  }
+	  counter+=1;
 
 
 	  HAL_Delay(5);
