@@ -10,6 +10,7 @@ This project is used for the transmitter for the LoT system.
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
@@ -114,7 +115,6 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  int counter = 0;
   while (1)
   {
 	  if (ADCRead == 1) {
@@ -133,36 +133,31 @@ int main(void)
 			uint8_t *binaryArray = decToBinConvert(value);
 			/*** TEST POINT: prints out the binary bits****/
 			for(int i =7;i>-1;i--){
-				sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
+				sprintf(buffer, "\r\nbinary: %d",*(binaryArray+i));
 				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
-			mode = 0;
 
 			// TRANSMIT the reading
 			transmit(binaryArray);
+			transmissionCounter+=1; //increment the number of readings transmitted
 
-	  }
-	  else if (counter ==10) { // if transmitter is in counter transmission mode
+	  }else if(transmissionCounter==2){ // if transmitter is in counter transmission mode
 		  mode = 1;
+		  uint8_t *binaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
 
-		  uint8_t value = 1;
-		  uint8_t *binaryArray = decToBinConvert(value);
 		  /*** TEST POINT: prints out the binary bits****/
 		  for(int i =7;i>-1;i--){
-			  sprintf(buffer, "\r\nbinary: %d\r\n",*(binaryArray+i));
+			  sprintf(buffer, "\r\nc_binary: %d",*(binaryArray+i));
 			  // Send ADC reading over UART
 			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 		  }
 
-		  // TRANSMIT the reading
+		  // TRANSMIT the counter value
 		  transmit(binaryArray);
-		  //mode = 0;
+
+		  transmissionCounter+=1;
 	  }
-	  counter+=1;
-
-
-	  HAL_Delay(5);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -278,7 +273,6 @@ static void MX_TIM3_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
@@ -298,28 +292,15 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -388,17 +369,11 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : B2_Pin */
-  GPIO_InitStruct.Pin = B2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -484,37 +459,43 @@ void transmit(uint8_t *binaryValue){
 	int delay = (1/RATE) *1000;
 
 	// Transmit START Bit
-	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,START);
+	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,START);
 	HAL_Delay(delay);
 	// Transmit mode and message
 	if(mode){ //if mode ==1, enter counter transmission mode
 		// Transmit MODE bit
+		// on board blue led is also switched on as visual indication that counter mode has been initiated
 		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,COUNTER_MODE);
 		HAL_Delay(delay);
 
-
-		//HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,COUNTER_MODE);
-		//HAL_Delay(delay);
-
-	}else{
-		// Transmit MODE bit
-		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,READING_MODE);
-		HAL_Delay(delay);
-
-		// Transmit MESSAGE: the 8 bit binary value
-		for(int i =6;i>-1;i--){
-			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,*(binaryValue+i));
+		// Transmit MESSAGE: the 8 bit binary counter value
+		for(int i =7;i>=0;i--){
+			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,*(binaryValue+i));
 			HAL_Delay(delay);
 		}
 
-		transmissionCounter+=1; //increment the number of readings transmitted
+		// Transmit STOP/continue bit
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,STOP);
+		HAL_Delay(delay);
+
+
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,GPIO_PIN_RESET); // Reset GPIO state and on board blue led
+
+	}else{
+		// Transmit MODE bit
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,READING_MODE);
+		HAL_Delay(delay);
+
+		// Transmit MESSAGE: the 8 bit binary value
+		for(int i =7;i>=0;i--){
+			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,*(binaryValue+i));
+			HAL_Delay(delay);
+		}
 
 		// Transmit STOP/continue bit
-		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,STOP);
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,STOP);
 		HAL_Delay(delay);
-		//HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,GPIO_PIN_RESET);
 	}
-
 
 }
 
