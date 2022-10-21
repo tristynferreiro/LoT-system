@@ -2,7 +2,7 @@
 A Light of Things Transmitter-Reciever System implemented using STM32Discovery boards. A simple system communication protocol has been designed for implementation by the transmitter and receiver subsystems.
 
 ## Contributers
-[Shameera Cassim](https://github.com/ShameeraC) <br />, [Tristyn Ferreiro](https://github.com/tristynferreiro), [Sarah Tallack](https://github.com/sjct00) <br />, [Heather Wimberley](https://github.com/Heather-Wimberley) <br />
+[Shameera Cassim](https://github.com/ShameeraC), [Tristyn Ferreiro](https://github.com/tristynferreiro), [Sarah Tallack](https://github.com/sjct00), [Heather Wimberley](https://github.com/Heather-Wimberley)
 
 ## Protocol
 The LoT Protocol structure can be seen in the image below. More in-depth explanations can be found in the project report.
