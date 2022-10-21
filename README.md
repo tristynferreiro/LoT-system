@@ -9,6 +9,6 @@ A Light of Things Transmitter-Reciever System implemented using STM32Discovery b
 
 ## Interfacing Diagrams
 ### Transmitter
-<img width="793" alt="Transmitter_Circuit" src="https://user-images.githubusercontent.com/65689669/197210093-69647319-6c45-4dce-a007-81c30288155c.png">
+<img width="793" alt="Transmitter_Circuit" src="https://user-images.githubusercontent.com/65689669/197210093-69647319-6c45-4dce-a07-81c30288155c.png">
 ### Receiver
 ![Receiver_Circuit](https://user-images.githubusercontent.com/65689669/197210192-f3540832-f3ae-42ee-90f9-ec62f8a1351f.jpeg)
