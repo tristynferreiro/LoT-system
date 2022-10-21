@@ -14,6 +14,7 @@ This project is used for the transmitter for the LoT system.
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -22,7 +23,7 @@ This project is used for the transmitter for the LoT system.
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RATE 1			// [Hz] This is the delay between light flashes/ transmitting bit
+#define RATE 1			// [Hz] This is transmission rate
 #define START 1			// start transmission bit is HIGH
 #define READING_MODE 0	// mode 0 is transmit data reading mode
 #define COUNTER_MODE 1	// mode 1 is transmit counter mode
@@ -48,9 +49,9 @@ DMA_HandleTypeDef hdma_usart2_tx;
 
 uint8_t ADCRead = 0;//used to check whether the ADC should be read or not
 uint8_t reading; //used to store ADC reading
-uint8_t samplesSent = 0; //used to keep track of number of samples sent
 char buffer[40]; //used for UART transmission
 
+int delay = (1/RATE) *1000; // Calculate the transmission delay
 uint8_t mode = 0; // transmission mode defaults to send reading
 
 uint8_t binary[8]; // array to store bits of the binary number
@@ -124,67 +125,69 @@ int main(void)
 			HAL_ADC_Stop(&hadc); 	//stop ADC
 			ADCRead = 0;			//reset ADCRead so that ADC only reads once
 
-			/*** TEST POINT ****/
-			// format the message
-			sprintf(buffer, "\r\nADC read: %ld\r\n", reading);
-
-			// Send ADC reading over UART
+			// format and send ADC reading over UART
+			sprintf(buffer, "\r\nADC read: %d\r\n", reading);
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 
-			uint8_t value = 13;
+			// Convert the reading to binary
 			uint8_t *binaryArray = decToBinConvert(reading);
 
-			/*** TEST POINT: prints out the binary bits****/
+			// format and send Binary bits over UART
 			memset(buffer, 0, sizeof(buffer));
-			sprintf(buffer, "\r\Binary: ");
-
-			// Send ADC reading over UART
+			sprintf(buffer, "\r\nBinary: ");
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-			memset(buffer, 0, sizeof(buffer));
 
+			memset(buffer, 0, sizeof(buffer));
 			for(int i =7;i>-1;i--){
 				sprintf(buffer, "%d",*(binaryArray+i));
-				// Send ADC reading over UART
 				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 			}
 
-			// TRANSMIT the reading
+			// Indicate with UART message that transmission is taking place
+			memset(buffer, 0, sizeof(buffer));
+			sprintf(buffer, "\r\nTransmitting...");
+			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+
+			// Transmit the binary array using the light
 			transmit(binaryArray);
 			transmissionCounter+=1; //increment the number of readings transmitted
 
-			sprintf(buffer, "\r\nTransmitted\r\n");
-
-			// Send ADC reading over UART
+			// Indicate with UART message that transmission is taking place
+			sprintf(buffer, "\r\nTransmitted.\r\n");
 			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 	  }
 
 	  else if(HAL_GPIO_ReadPin(GPIOC, B2_Pin)){ // if transmitter is in counter transmission mode
-		  mode = 1;
-		  /*** TEST POINT ****/
-		  			// format the message
-		  			sprintf(buffer, "\r\nno. Transmissions: %ld\r\n", transmissionCounter);
+		  mode = 1; //set the transmission mode to 1 (checkpoint transmit)
 
-		  			// Send ADC reading over UART
-		  			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+		  // format and send ADC reading over UART
+		  sprintf(buffer, "\r\nNo. Transmissions: %d\r\n", transmissionCounter);
+		  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 
-		  uint8_t *cbinaryArray = decToBinConvert(transmissionCounter); // convert counter value to binary bits
-		  /*** TEST POINT: prints out the binary bits****/
-		  			memset(buffer, 0, sizeof(buffer));
-		  			sprintf(buffer, "\r\Binary: ");
+		  // Convert the counter value to binary
+		  uint8_t *cbinaryArray = decToBinConvert(transmissionCounter);
 
-		  			// Send ADC reading over UART
-		  			HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-		  			memset(buffer, 0, sizeof(buffer));
+		  // format and send Binary bits over UART
+		  memset(buffer, 0, sizeof(buffer));
+		  sprintf(buffer, "\r\nBinary: ");
+		  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 
-		  			for(int i =7;i>-1;i--){
-		  				sprintf(buffer, "%d",*(cbinaryArray+i));
-		  				// Send ADC reading over UART
-		  				HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
-		  			}
+		  memset(buffer, 0, sizeof(buffer));
+		  for(int i =7;i>-1;i--){
+			  sprintf(buffer, "%d",*(cbinaryArray+i));
+			  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+		  }
 
-		  // TRANSMIT the counter value
+		  // Indicate with UART message that transmission is taking place
+		  memset(buffer, 0, sizeof(buffer));
+		  sprintf(buffer, "\r\nTransmitting...");
+		  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+
+		  // Transmit the binary array using the light
 		  transmit(cbinaryArray);
-		  sprintf(buffer, "\r\nTransmitted\r\n");
+
+		  // Indicate with UART message that transmission is taking place
+		  sprintf(buffer, "\r\nTransmitted.\r\n");
 		  HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
 	  }
     /* USER CODE END WHILE */
@@ -402,7 +405,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(Laser_Diode_GPIO_Port, Laser_Diode_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B2_Pin */
   GPIO_InitStruct.Pin = B2_Pin;
@@ -416,12 +419,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : Laser_Diode_Pin LD4_Pin */
-  GPIO_InitStruct.Pin = Laser_Diode_Pin|LD4_Pin;
+  /*Configure GPIO pin : Laser_Diode_Pin */
+  GPIO_InitStruct.Pin = Laser_Diode_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(Laser_Diode_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
@@ -467,11 +470,13 @@ uint8_t pollADC(void){
  * when to turn the light on and off.
  */
 uint8_t* decToBinConvert(uint8_t decimalValue){
-	memset(binary, 0, sizeof(binary));
-	int counter=0;
-	uint8_t temp = decimalValue;
-	if(decimalValue<256){
-		  int remainder=0; // i is the scaling factor used to store the bit in the correct position.
+	memset(binary, 0, sizeof(binary)); // reset the array to prevent memory write errors
+
+	int counter=0; // keep track of position in array
+	uint8_t temp = decimalValue; // used for conversion, do not want to change original value.
+
+	if(decimalValue<256){ // only working with 8-bit numbers
+		  int remainder=0;
 
 		  while (temp!=0) {
 		    remainder = temp % 2;
@@ -491,48 +496,32 @@ uint8_t* decToBinConvert(uint8_t decimalValue){
  * 	Start bit (1)		Mode(0/1)		Message (8bits)			Stop/Continue (0/1)
  */
 void transmit(uint8_t *binaryValue){
-	//Calc delay between transmits
-	int delay = (1/RATE) *1000;
 
 	// Transmit START Bit
 	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,START);
 	HAL_Delay(delay);
-	// Transmit mode and message
+
+	// Transmit MODE
 	if(mode){ //if mode ==1, enter counter transmission mode
-		// Transmit MODE bit
-		// on board blue led is also switched on as visual indication that counter mode has been initiated
-		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,COUNTER_MODE);
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,COUNTER_MODE);
 		HAL_Delay(delay);
-
-		// Transmit MESSAGE: the 8 bit binary counter value
-		for(int i =7;i>=0;i--){
-			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,*(binaryValue+i));
-			HAL_Delay(delay);
-		}
-
-		// Transmit STOP/continue bit
-		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,STOP);
-		HAL_Delay(delay);
-
-
-		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin|LD4_Pin,GPIO_PIN_RESET); // Reset GPIO state and on board blue led
 
 	}else{
-		// Transmit MODE bit
 		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,READING_MODE);
-		HAL_Delay(delay);
-
-		// Transmit MESSAGE: the 8 bit binary value
-		for(int i =7;i>=0;i--){
-			HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,*(binaryValue+i));
-			HAL_Delay(delay);
-		}
-
-		// Transmit STOP/continue bit
-		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,STOP);
 		HAL_Delay(delay);
 	}
 
+	// Transmit MESSAGE: the 8 bit binary value
+	for(int i =7;i>=0;i--){
+		HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,*(binaryValue+i));
+		HAL_Delay(delay);
+	}
+
+	// Transmit STOP/continue bit
+	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,STOP);
+	HAL_Delay(delay);
+
+	HAL_GPIO_WritePin(GPIOC, Laser_Diode_Pin,GPIO_PIN_RESET); // Reset GPIO state and on board blue led
 }
 
 /* USER CODE END 4 */
