@@ -32,7 +32,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define REF 0.5				// Reference used for determining value of incoming bits
-#define PERIOD 1000			// Time between packets
+#define PERIOD 1000			// Time between samples
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,8 +48,8 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint8_t listening = 0;		// Variable that is changed when blue push button is pressed
 uint8_t data[8];			// Array to store data values as they are received
-uint8_t packets = 0;		// Counter to keep track of number of data packets received
-uint8_t allSamples[20];		// Array to store data packets once they have been converted from an array to a single byte value
+uint8_t samples = 0;		// Counter to keep track of number of data samples received
+uint8_t allSamples[20];		// Array to store data samples once they have been converted from an array to a single byte value
 
 char VAL_print[40];			// Array to use for printing to UART
 /* USER CODE END PV */
@@ -354,12 +354,12 @@ uint8_t arrayToData(void)
 
 void readSignal(void)
 {
-	/* Function called to read the input signal and determine if the input is a data packet or the number of packets already sent */
+	/* Function called to read the input signal and determine if the input is a data packet or the number of samples already sent */
 
 	//add an initial delay
 	HAL_Delay(PERIOD);
 
-	// Local variable to store the state of the input signal (0 means data packet being sent, 1 means number of packets being sent
+	// Local variable to store the state of the input signal (0 means data packet being sent, 1 means number of samples being sent
 	uint32_t state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 
 	//check mode of operation
@@ -389,20 +389,20 @@ void readSignal(void)
 		}
 
 		// Convert data into single 8 bit int and store in allSamples array
-		allSamples[packets] = arrayToData();
+		allSamples[samples] = arrayToData();
 
 		// Increase packet counter
-		packets++;
+		samples++;
 
 		// Stop listening
 		listening = 0;
 
 		// Transmit the value of data receiver
 		memset(VAL_print, 0, sizeof(VAL_print));
-		sprintf(VAL_print, "Value Received: %d\r\n\r\n", allSamples[packets-1]);
+		sprintf(VAL_print, "Value Received: %d\r\n\r\n", allSamples[samples-1]);
 		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
 	}
-	else //compare no packets
+	else //compare no samples
 	{
 		memset(VAL_print, 0, sizeof(VAL_print));
 		sprintf(VAL_print, "Comparing number of transmissions...\r\n");
@@ -425,15 +425,15 @@ void readSignal(void)
 			}
 		}
 
-		// Transmit number of packets received
-		uint8_t transmit_packets = arrayToData();
+		// Transmit number of samples received
+		uint8_t transmit_samples = arrayToData();
 		memset(VAL_print, 0, sizeof(VAL_print));
-		sprintf(VAL_print, "Number of transmissions: %d\r\n",transmit_packets);
+		sprintf(VAL_print, "Number of transmissions: %d\r\n",transmit_samples);
 		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
 
 
-		// Check if number of packets received equals number of packets sent by transmitter
-		if (transmit_packets == packets)
+		// Check if number of samples received equals number of samples sent by transmitter
+		if (transmit_samples == samples)
 		{
 			// Let computer know the values are equal
 			memset(VAL_print, 0, sizeof(VAL_print));
@@ -457,8 +457,8 @@ void readSignal(void)
 			HAL_Delay(500);
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
 
-			// Change number of packets to number of packets sent by transmitted
-			packets = transmit_packets;
+			// Change number of samples to number of samples sent by transmitted
+			samples = transmit_samples;
 		}
 	}
 }
