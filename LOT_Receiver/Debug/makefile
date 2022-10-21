@@ -60,8 +60,8 @@ all: main-build
 main-build: LoT.elf secondary-outputs
 
 # Tool invocations
-LoT.elf LoT.map: $(OBJS) $(USER_OBJS) D:\UCT\ 2022\EEE3096S\ Embedded\ Systems\ II\Project\LoT_Receiver\STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LoT.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\UCT 2022\EEE3096S Embedded Systems II\Project\LoT_Receiver\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LoT.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LoT.elf LoT.map: $(OBJS) $(USER_OBJS) C:\Users\sarah\Documents\1.\ University\4th\ Year\EEE3096S\LoT_System\LOT_Receiver\STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LoT.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\sarah\Documents\1. University\4th Year\EEE3096S\LoT_System\LOT_Receiver\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LoT.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

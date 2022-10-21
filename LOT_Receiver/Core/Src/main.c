@@ -31,8 +31,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define REF 0.5		//Voltage of ADC when data received
-#define PERIOD 1000		//Time between samples
+#define REF 0.5				// Reference used for determining value of incoming bits
+#define PERIOD 1000			// Time between packets
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,12 +46,12 @@ ADC_HandleTypeDef hadc;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint8_t listening = 0;
-uint8_t data[8];
-uint8_t samples = 0;
-uint8_t allSamples[20];
+uint8_t listening = 0;		// Variable that is changed when blue push button is pressed
+uint8_t data[8];			// Array to store data values as they are received
+uint8_t packets = 0;		// Counter to keep track of number of data packets received
+uint8_t allSamples[20];		// Array to store data packets once they have been converted from an array to a single byte value
 
-char VAL_print[40];
+char VAL_print[40];			// Array to use for printing to UART
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -110,22 +110,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  	  // Wait until button is pressed to start listening
+
+	  	  // Wait until push button is pressed to start listening
 	  	  if (listening == 1)
 	  	  {
 	  		  //print to UART
 	  		  memset(VAL_print, 0, sizeof(VAL_print));
 	  		  sprintf(VAL_print, "Waiting...\r\n\r\n");
 	  		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+
+	  		  // Check the value of the signal input pin
 	  		  uint32_t state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 
 	  		  // Wait for start bit from transmitter
 	  		  while(state<REF)
 	  		  {
-	  			  //update ADC value
+	  			  // Continue checking state if input pin until input goes HIGH
 	  			  state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 	  		  }
 
+	  		  // Once state of input pin goes high, begin to read and store the data being received
 	  		  int cont = 1;
 	  		  //while loop to check if more data is transmitted
 	  		  while(cont)
@@ -316,21 +320,28 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void EXTI0_1_IRQHandler(void)
 {
+	/* Interrupt that is called when the blue push button is pressed */
+
 	//if the button is pressed set the mode to listening
 	if (B1_Pin)
 		{
 			if (listening == 0)
 			{
+				// Change listening to 1 so that STM starts waiting for start bit
 				listening = 1;
 			}
 		}
-  HAL_GPIO_EXTI_IRQHandler(B1_Pin);
+
+	HAL_GPIO_EXTI_IRQHandler(B1_Pin);
 }
 
 uint8_t arrayToData(void)
 {
-	// convert binary array to one byte
+	/* Convert the data array into a single byte value */
+
+	// Local variable to store data value
 	uint8_t output = 0;
+
 	for(int i = 0; i < 8; i++)
 	{
 		output = output + ((data[i])<<i);
@@ -343,89 +354,113 @@ uint8_t arrayToData(void)
 
 void readSignal(void)
 {
+	/* Function called to read the input signal and determine if the input is a data packet or the number of packets already sent */
+
 	//add an initial delay
-	  HAL_Delay(PERIOD);
-	  uint32_t state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
-	  //check mode of operation
-	  if (state < REF) //save data mode
-	  {
-		// Once start bit has been received, store the next 8 bits of data in the data array
-		  memset(VAL_print, 0, sizeof(VAL_print));
-		  sprintf(VAL_print, "Receiving data values...\r\n");
-		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
-		  for (int i = 7; i >= 0; i--)
-		  {
-			  HAL_Delay(PERIOD);
-			  state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
-			  if (state < REF)
-			  {
-				  data[i] = 0;
-			  }
-			  else
-			  {
-				  data[i] = 1;
-			  }
-		  }
+	HAL_Delay(PERIOD);
 
-		  // Convert data into single 8 bit int and store in allSamples array
-		  allSamples[samples] = arrayToData();
+	// Local variable to store the state of the input signal (0 means data packet being sent, 1 means number of packets being sent
+	uint32_t state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 
-		  // Increase sample counter
-		  samples++;
+	//check mode of operation
+	if (state < REF) //save data mode
+	{
+		// Let computer know we are receiving data
+		memset(VAL_print, 0, sizeof(VAL_print))
+		sprintf(VAL_print, "Receiving data values...\r\n");
+		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
 
-		  // Stop listening
-		  listening = 0;
-		  memset(VAL_print, 0, sizeof(VAL_print));
-		  sprintf(VAL_print, "Value Received: %d\r\n\r\n", allSamples[samples-1]);
-		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
-		  //HAL_Delay(500);
-	  }
-	else //compare no samples
-	  {
+		// Once mode bit has been received, store the next 8 bits of data in the data array
+		for (int i = 7; i >= 0; i--)
+		{
+			// Add delay between samples
+			HAL_Delay(PERIOD);
+
+			// Read pin value
+			state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+			if (state < REF)
+			{
+				data[i] = 0;
+			}
+			else
+			{
+				data[i] = 1;
+			}
+		}
+
+		// Convert data into single 8 bit int and store in allSamples array
+		allSamples[packets] = arrayToData();
+
+		// Increase packet counter
+		packets++;
+
+		// Stop listening
+		listening = 0;
+
+		// Transmit the value of data receiver
+		memset(VAL_print, 0, sizeof(VAL_print));
+		sprintf(VAL_print, "Value Received: %d\r\n\r\n", allSamples[packets-1]);
+		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+	}
+	else //compare no packets
+	{
 		memset(VAL_print, 0, sizeof(VAL_print));
 		sprintf(VAL_print, "Comparing number of transmissions...\r\n");
 		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
-		  for(int i = 7; i >= 0; i--)
-		  {
-			  HAL_Delay(PERIOD);
-			  //read pin value
-			  state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
+		for(int i = 7; i >= 0; i--)
+		{
+			// Add delay between samples
+			HAL_Delay(PERIOD);
 
-			  if (state < REF)
-			  {
-				  data[i] = 0;
-			  }
-			  else
-			  {
-				  data[i] = 1;
-			  }
-		  }
+			// Read pin value
+			state = HAL_GPIO_ReadPin(GPIOA, Signal_in_Pin);
 
-		  uint8_t transmit_samples = arrayToData();
-		  memset(VAL_print, 0, sizeof(VAL_print));
-		  sprintf(VAL_print, "Number of transmissions: %d\r\n",transmit_samples);
-		  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+			if (state < REF)
+			{
+				data[i] = 0;
+			}
+			else
+			{
+				data[i] = 1;
+			}
+		}
 
-		  if (transmit_samples == samples)
-		  {
-			  memset(VAL_print, 0, sizeof(VAL_print));
-			  sprintf(VAL_print, "It's the same!! :)\r\n\r\n");
-			  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle green pin
-			  HAL_Delay(500);
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9); //toggle green pin
-		  }
-		  else
-		  {
-			  memset(VAL_print, 0, sizeof(VAL_print));
-			  sprintf(VAL_print, "It's not the same!! :(\r\n\r\n");
-			  HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle blue pin
-			  HAL_Delay(500);
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); //toggle blue pin
-			  samples = transmit_samples;
-		  }
-	  }
+		// Transmit number of packets received
+		uint8_t transmit_packets = arrayToData();
+		memset(VAL_print, 0, sizeof(VAL_print));
+		sprintf(VAL_print, "Number of transmissions: %d\r\n",transmit_packets);
+		HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+
+
+		// Check if number of packets received equals number of packets sent by transmitter
+		if (transmit_packets == packets)
+		{
+			// Let computer know the values are equal
+			memset(VAL_print, 0, sizeof(VAL_print));
+			sprintf(VAL_print, "It's the same!! :)\r\n\r\n");
+			HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+
+			// Toggle green pin on and off if values equal
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+			HAL_Delay(500);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+		}
+		else
+		{
+			// Let computer know the values are not equal
+			memset(VAL_print, 0, sizeof(VAL_print));
+			sprintf(VAL_print, "It's not the same!! :(\r\n\r\n");
+			HAL_UART_Transmit(&huart2, VAL_print, sizeof(VAL_print), 1000);
+
+			// Toggle blue pin on and off if values equal
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+			HAL_Delay(500);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+
+			// Change number of packets to number of packets sent by transmitted
+			packets = transmit_packets;
+		}
+	}
 }
 /* USER CODE END 4 */
 
