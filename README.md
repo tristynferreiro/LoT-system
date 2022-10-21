@@ -9,10 +9,12 @@ A Light of Things Transmitter-Reciever System implemented using STM32Discovery b
 
 ## Interfacing Diagrams
 ### Transmitter
-<img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/Transmitter_Circuit.png" width="500">
-
+<p align="center">
+<img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/Transmitter_Circuit.png" width="600">
+<\p>
+  
 ### Receiver
-<img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/Receiver_Circuit.png" width="500">
+<img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/Receiver_Circuit.jpeg" width="600">
 
 ## Protocol
 The LoT Protocol structure can be seen in the image below. More in-depth explanations can be found in the project report.
