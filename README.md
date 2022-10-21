@@ -8,12 +8,12 @@ A Light of Things Transmitter-Reciever System implemented using STM32Discovery b
 [Tristyn Ferreiro](https://github.com/tristynferreiro)
 
 ## Interfacing Diagrams
-### Transmitter
+### Transmitter Interfacing Diagram
 <p align="center">
 <img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/Transmitter_Circuit.png" width="500">
 </p>
   
-### Receiver
+### Receiver Interfacing Diagram
 <p align="center">
 <img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/Receiver_Circuit.jpeg" width="500">
 </p>
