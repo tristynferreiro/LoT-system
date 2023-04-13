@@ -10,7 +10,7 @@ The LoT Protocol structure can be seen in the image below. More in-depth explana
  <img src="https://github.com/tristynferreiro/LoT_System/blob/main/Docs/ProtocolStruct.jpg" width="500">
 </p>
 
-## Subsystems
+## Subsystems Implemented
 ### Transmitter
 The transmitter has two modes: data reading mode and checkpoint mode. When the onboard blue push button is pressed, a data reading is taken from the potentiometer and the reading is transmitted using the laser diode and protocol structure. When the silver push button is pressed, the number of transmissions counter value is transmitted instead. The system hardware can be seen below:
 <p align="center">
