@@ -1,4 +1,4 @@
-# LoT_System
+# LoT System
 A Light of Things (LoT) Transmitter-Reciever System implemented using STM32f0Discovery boards. A simple system communication protocol has been designed for implementation by the transmitter and receiver subsystems.
 
 ## Contributers
